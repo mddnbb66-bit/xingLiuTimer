@@ -103,6 +103,15 @@ export function SetReminderInterval(minutes) {
 }
 
 /**
+ * SetWindowPinned controls manual pinning independently of reminder popups.
+ * @param {boolean} pinned
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetWindowPinned(pinned) {
+    return $Call.ByID(2301139638, pinned);
+}
+
+/**
  * @param {number} minutes
  * @returns {$CancellablePromise<void>}
  */

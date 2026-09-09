@@ -14,6 +14,7 @@ import (
 
 // Stats is pushed to the frontend via events and is also queryable via GetStats().
 type Stats struct {
+	WindowPinned             bool   `json:"windowPinned"`
 	CanUndoReset             bool   `json:"canUndoReset"`
 	UndoResetKind            string `json:"undoResetKind"`
 	Running                  bool   `json:"running"`
@@ -95,7 +96,25 @@ func (s *BiliBreakService) ServiceShutdown() error {
 	return nil
 }
 
+// SetWindowPinned controls manual pinning independently of reminder popups.
+func (s *BiliBreakService) SetWindowPinned(pinned bool) error {
+	s.mu.Lock()
+	win := s.mainWindow
+	if win == nil {
+		s.mu.Unlock()
+		return fmt.Errorf("主窗口尚未准备好")
+	}
+	s.stats.WindowPinned = pinned
+	win.SetAlwaysOnTop(pinned)
+	s.mu.Unlock()
+	s.emitStats()
+	return nil
+}
+
 func (s *BiliBreakService) setWindowTop(top bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	win := s.mainWindow
 	if win == nil {
 		return
@@ -108,7 +127,7 @@ func (s *BiliBreakService) setWindowTop(top bool) {
 		win.SetAlwaysOnTop(true)
 		win.Focus()
 	} else {
-		win.SetAlwaysOnTop(false)
+		win.SetAlwaysOnTop(s.stats.WindowPinned)
 	}
 }
 

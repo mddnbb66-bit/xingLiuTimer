@@ -244,6 +244,13 @@ export class Stats {
      * @param {Partial<Stats>} [$$source = {}] - The source object to create the Stats.
      */
     constructor($$source = {}) {
+        if (!("windowPinned" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["windowPinned"] = false;
+        }
         if (!("canUndoReset" in $$source)) {
             /**
              * @member

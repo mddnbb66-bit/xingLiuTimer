@@ -350,6 +350,14 @@ function wireClock() {
 }
 
 function renderStats(stats) {
+  const pin = $("btnPinWindow");
+  const pinned = !!stats?.windowPinned;
+  pin.setAttribute("aria-pressed", String(pinned));
+  pin.title = pinned ? "取消置顶" : "置顶窗口";
+  pin.setAttribute("aria-label", pin.title);
+  pin.style.background = pinned ? "#bbf7d0" : "";
+  $("pinWindowLabel").textContent = pinned ? "已置顶" : "置顶";
+
   if (!stats) return;
   updateResetControls(stats);
   updateFloatingClockFromStats();
@@ -437,6 +445,19 @@ async function refreshOnce() {
 }
 
 function wireUI() {
+  $("btnPinWindow").addEventListener("click", async () => {
+    const button = $("btnPinWindow");
+    button.disabled = true;
+    try {
+      await App.SetWindowPinned(button.getAttribute("aria-pressed") !== "true");
+      state.stats = await App.GetStats();
+      renderStats(state.stats);
+    } catch (error) {
+      button.title = `置顶操作失败：${error?.message || error}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
   wireResetControls({ App, refresh: async () => {
     state.stats = await App.GetStats();
     renderStats(state.stats);
@@ -854,3 +875,4 @@ async function main() {
 }
 
 main();
+
