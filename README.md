@@ -53,12 +53,19 @@
 | **前端框架** | **Vue 3** | 构建响应式用户界面 |
 | **构建工具** | **Vite** | 极速冷启动与模块热更新 |
 
-## 📸 应用截图
+## 📸 实机演示
+
+### 专注计时与提醒设置
 
 <div align="center">
-  <img src="img/9105bf43-0fdc-40cb-9356-f18d17c39279.png" alt="应用截图" width="800" />
+  <img src="img/demo-overview.jpg" alt="Bili Break Reminder 专注计时与提醒设置实机演示" width="100%" />
 </div>
 
+### 专注趋势与识别规则
+
+<div align="center">
+  <img src="img/demo-settings.jpg" alt="Bili Break Reminder 专注趋势与识别规则实机演示" width="100%" />
+</div>
 
 ## 🚀 快速开始
 
