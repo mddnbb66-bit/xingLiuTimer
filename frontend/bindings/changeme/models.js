@@ -15,6 +15,13 @@ export class Config {
      * @param {Partial<Config>} [$$source = {}] - The source object to create the Config.
      */
     constructor($$source = {}) {
+        if (!("recognitionVersion" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["recognitionVersion"] = 0;
+        }
         if (!("intervalMinutes" in $$source)) {
             /**
              * IntervalMinutes: reminder interval in minutes. v3 allows going smaller than 30.
@@ -132,16 +139,99 @@ export class Config {
      * @returns {Config}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType0;
         const $$createField8_0 = $$createType0;
+        const $$createField9_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("keywords" in $$parsedSource) {
-            $$parsedSource["keywords"] = $$createField7_0($$parsedSource["keywords"]);
+            $$parsedSource["keywords"] = $$createField8_0($$parsedSource["keywords"]);
         }
         if ("processes" in $$parsedSource) {
-            $$parsedSource["processes"] = $$createField8_0($$parsedSource["processes"]);
+            $$parsedSource["processes"] = $$createField9_0($$parsedSource["processes"]);
         }
         return new Config(/** @type {Partial<Config>} */($$parsedSource));
+    }
+}
+
+/**
+ * DailyPoint represents the study seconds for a single calendar day.
+ */
+export class DailyPoint {
+    /**
+     * Creates a new DailyPoint instance.
+     * @param {Partial<DailyPoint>} [$$source = {}] - The source object to create the DailyPoint.
+     */
+    constructor($$source = {}) {
+        if (!("date" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["date"] = "";
+        }
+        if (!("seconds" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["seconds"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DailyPoint instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DailyPoint}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DailyPoint(/** @type {Partial<DailyPoint>} */($$parsedSource));
+    }
+}
+
+/**
+ * FocusTarget describes the foreground window captured after the switch delay.
+ */
+export class FocusTarget {
+    /**
+     * Creates a new FocusTarget instance.
+     * @param {Partial<FocusTarget>} [$$source = {}] - The source object to create the FocusTarget.
+     */
+    constructor($$source = {}) {
+        if (!("process" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["process"] = "";
+        }
+        if (!("keyword" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["keyword"] = "";
+        }
+        if (!("browser" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["browser"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FocusTarget instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {FocusTarget}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new FocusTarget(/** @type {Partial<FocusTarget>} */($$parsedSource));
     }
 }
 
@@ -224,6 +314,22 @@ export class Stats {
              * @type {string | undefined}
              */
             this["snoozedUntil"] = undefined;
+        }
+        if (!("dailyAvgSeconds" in $$source)) {
+            /**
+             * average seconds per active day
+             * @member
+             * @type {number}
+             */
+            this["dailyAvgSeconds"] = 0;
+        }
+        if (!("weeklyAvgSeconds" in $$source)) {
+            /**
+             * average seconds per day over last 7 days
+             * @member
+             * @type {number}
+             */
+            this["weeklyAvgSeconds"] = 0;
         }
 
         Object.assign(this, $$source);

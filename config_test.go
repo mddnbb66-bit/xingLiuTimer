@@ -14,7 +14,10 @@ func TestDefaultPersistedStatsStartsAtInitialBaseline(t *testing.T) {
 }
 
 func TestLoadPersistedStatsMissingFileUsesDefaultBaseline(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	base := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", base)
+	t.Setenv("APPDATA", base)
+	t.Setenv("APPDATA", base)
 	stats, err := LoadPersistedStats()
 	if err != nil {
 		t.Fatalf("LoadPersistedStats returned error: %v", err)
@@ -27,6 +30,7 @@ func TestLoadPersistedStatsMissingFileUsesDefaultBaseline(t *testing.T) {
 func TestLoadPersistedStatsPreservesLargeDurations(t *testing.T) {
 	base := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", base)
+	t.Setenv("APPDATA", base)
 	statsDir := filepath.Join(base, ConfigFolder)
 	if err := os.MkdirAll(statsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll failed: %v", err)

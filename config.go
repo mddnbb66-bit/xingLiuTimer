@@ -18,6 +18,7 @@ const (
 
 // Config contains user settings persisted on disk.
 type Config struct {
+	RecognitionVersion int `json:"recognitionVersion"`
 	// IntervalMinutes: reminder interval in minutes. v3 allows going smaller than 30.
 	IntervalMinutes int `json:"intervalMinutes"`
 
@@ -59,6 +60,7 @@ func defaultPersistedStats() PersistedStats {
 
 func defaultConfig() Config {
 	return Config{
+		RecognitionVersion: 1,
 		IntervalMinutes:    30,
 		MonitorEnabled:     true,
 		NotifySystem:       true,
@@ -67,7 +69,7 @@ func defaultConfig() Config {
 		SnoozeMinutes:      10,
 		AutoStart:          false,
 		Keywords:           []string{"bilibili", "哔哩哔哩", "b站"},
-		Processes:          []string{"chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe"},
+		Processes:          []string{"chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "chatgpt.exe"},
 		ClockAlwaysOn:      false,
 		ClockFadeAfterSecs: 20,
 		ClockAlertMinutes:  5,
@@ -100,6 +102,16 @@ func (c *Config) Normalize() {
 	if c.ClockAlertMinutes > 60 {
 		c.ClockAlertMinutes = 60
 	}
+	// Migrate existing ChatGPT webpage users to desktop support once.
+	if c.RecognitionVersion < 1 {
+		for _, keyword := range normalizeStringSlice(c.Keywords) {
+			if keyword == "chatgpt" || keyword == "gpt" {
+				c.Processes = append(c.Processes, "chatgpt.exe")
+				break
+			}
+		}
+		c.RecognitionVersion = 1
+	}
 	// Normalize strings
 	c.Keywords = normalizeStringSlice(c.Keywords)
 	c.Processes = normalizeStringSlice(c.Processes)
@@ -108,7 +120,7 @@ func (c *Config) Normalize() {
 func normalizeStringSlice(in []string) []string {
 	out := make([]string, 0, len(in))
 	seen := map[string]struct{}{}
-	for _, s := range in {
+	for _, s := range strings.FieldsFunc(strings.Join(in, ","), func(r rune) bool { return r == ',' || r == '，' || r == '\n' || r == '\r' }) {
 		s = strings.TrimSpace(s)
 		if s == "" {
 			continue

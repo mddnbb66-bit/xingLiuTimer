@@ -1,106 +1,31 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Bili Break Reminder</title><link rel="stylesheet" href="/style.css"></head>
+<body><div id="floatingClock" class="floatingClock" aria-label="距离休息剩余时间，可拖动" title="拖动以调整位置">--:--</div>
+<div class="app">
+<header class="topbar"><div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="17" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M16 11v6l4 2M13 3h6M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><div><div class="brandName">Bili Break Reminder</div><div class="brandSub">专注有度，休息有时。</div></div></div><nav class="sectionNav" aria-label="页面导航"><a href="#focusPanel">专注</a><a href="#historyPanel">统计</a><a href="#settingsPanel">设置</a></nav><div class="topbarRight"><div id="statusPill" class="pill pill--stopped" role="status">未运行</div><button id="btnStartStop" class="btn btn--primary">启动监控</button></div></header>
+<div class="pageHeading"><div><div class="eyebrow">专注与休息</div><h1>专注一会儿，休息一下。</h1><p>让每一次专注，都有恰到好处的停顿。</p></div><span class="headingNote">保持自己的节奏</span></div>
+<main class="grid"><div class="overview">
+<section id="focusPanel" class="card focusCard"><div class="cardHeader"><div class="cardTitle">当前专注</div><span class="quietBadge">休息倒计时</span></div><div class="timerArea"><div class="timerLabel">距离下一次休息</div><div id="statNext" class="heroTimer">--:--</div><div class="timerCaption">放松双眼，伸展一下，再继续。</div></div><div class="focusActions"><button id="btnManual" class="btn btn--primary">提醒我休息</button><button id="btnClearNext" class="btn btn--ghost">清空倒计时</button></div><div class="activity"><span class="activityDot"></span><div><div class="statLabel">当前窗口</div><div id="statWindow" class="statMono">--</div></div><div id="statProcess" class="processName">--</div></div></section>
+<section class="card statistics"><div class="cardHeader"><div class="cardTitle">专注统计</div><button id="btnCycleCumulativeFormat" class="textButton">累计格式：时分秒</button></div><div class="statsGrid"><div class="stat"><div class="statLabel">今日专注</div><div id="statTotal" class="statValue">--:--</div></div><div class="stat"><div class="statLabel">累计学习</div><div id="statCumulative" class="statValue">--:--</div></div><div class="stat"><div class="statLabel">日均时长</div><div id="statDailyAvg" class="statValue">--:--</div></div><div class="stat"><div class="statLabel">周均时长</div><div id="statWeeklyAvg" class="statValue">--:--</div></div></div><div class="statsFooter"><span id="cumulativeFormatHint" class="note">切换累计时长的显示方式。</span><button id="btnReset" class="textButton mutedButton">重置今日</button></div></section>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bili Break Reminder</title>
-  <link rel="stylesheet" href="/style.css" />
-</head>
-
-<body>
-  <div id="floatingClock" class="floatingClock" aria-label="当前时间">00:00</div>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">⏱️</div>
-        <div class="brandText">
-          <div class="brandName">Bili Break Reminder</div>
-          <div class="brandSub">监测 B 站 Web 端和工作观看时间 · 每隔一段时间提醒休息</div>
+    <section id="historyPanel" class="card chartCard">
+      <div class="cardHeader">
+        <div>
+          <div class="cardTitle">专注的轨迹</div>
+          <div class="cardSub">为每一天的投入，留下记录。</div>
+        </div>
+        <div class="chartRangeRow">
+          <button class="chip chartRangeBtn chartRangeBtn--active" data-days="7">7 天</button>
+          <button class="chip chartRangeBtn" data-days="14">14 天</button>
+          <button class="chip chartRangeBtn" data-days="30">30 天</button>
         </div>
       </div>
-
-      <div class="topbarRight">
-        <div class="statusWrap">
-          <div class="statusLabel">状态</div>
-          <div id="statusPill" class="pill pill--stopped">未运行</div>
-        </div>
-        <button id="btnStartStop" class="btn btn--primary">启动监控</button>
+      <div class="chartWrap">
+        <svg id="studyChart" class="studyChart" aria-label="每日学习时长折线图"></svg>
       </div>
-    </header>
+    </section>
 
-    <main class="grid">
-      <!-- Left: Stats -->
-      <section class="card">
-        <div class="cardHeader">
-          <div>
-            <div class="cardTitle">实时状态</div>
-            <div class="cardSub">保持健康节奏，及时休息。</div>
-          </div>
-          <div class="cardTag">Live</div>
-        </div>
-
-        <div class="statsGrid">
-          <div class="stat">
-            <div class="statLabel">本日累计</div>
-            <div id="statTotal" class="statValue">00:00</div>
-          </div>
-
-          <div class="stat">
-            <div class="statLabel">累计学习时间</div>
-            <div id="statCumulative" class="statValue">32:00:00</div>
-            <div id="cumulativeFormatHint" class="statMono">可在时分秒 / 天 / 月 / 年 / 智能之间切换。</div>
-          </div>
-
-          <div class="stat">
-            <div class="statLabel">距离下次休息</div>
-            <div id="statNext" class="statValue">--:--</div>
-          </div>
-
-          <div class="stat">
-            <div class="statLabel">日平均时长</div>
-            <div id="statDailyAvg" class="statValue">--:--</div>
-          </div>
-
-          <div class="stat">
-            <div class="statLabel">周平均时长</div>
-            <div id="statWeeklyAvg" class="statValue">--:--</div>
-          </div>
-
-          <div class="stat">
-            <div class="statLabel">当前窗口</div>
-            <div id="statWindow" class="statMono">--</div>
-          </div>
-
-          <div class="stat">
-            <div class="statLabel">当前进程</div>
-            <div id="statProcess" class="statMono">--</div>
-          </div>
-        </div>
-
-        <div class="actions actions--split">
-          <button id="btnManual" class="btn">手动提醒</button>
-          <button id="btnClearNext" class="btn">清空休息倒计时</button>
-          <button id="btnCycleCumulativeFormat" class="btn">累计格式：时分秒</button>
-          <button id="btnReset" class="btn btn--ghost">重置本日累计</button>
-        </div>
-
-        <div class="hint">
-          识别逻辑：前台活动窗口标题包含关键词（如 bilibili/哔哩哔哩/B站）且进程属于浏览器（可配置）。
-        </div>
-      </section>
-
-      <!-- Right: Settings -->
-      <section class="card">
-        <div class="cardHeader">
-          <div>
-            <div class="cardTitle">设置面板</div>
-            <div class="cardSub">调整提醒节奏和识别规则。</div>
-          </div>
-          <div class="cardTag cardTag--soft">Config</div>
-        </div>
-
-        <div class="formRow">
+    </div><aside id="settingsPanel" class="card settingsCard" aria-label="提醒设置"><div class="cardHeader"><div><div class="cardTitle">提醒设置</div><div class="cardSub">让提醒适合你的日常。</div></div><svg class="settingsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="white"/><circle cx="15" cy="17" r="3" fill="white"/></svg></div><details class="settingsGroup" open><summary>提醒节奏</summary><div class="formRow">
           <label class="label" for="intervalNumber">提醒间隔（分钟）</label>
 
           <div class="intervalRow">
@@ -116,30 +41,30 @@
             <button class="chip" data-preset="60">60</button>
           </div>
 
-          <div class="note" id="intervalNote">最小 1 分钟（v3 修复：可往小调）</div>
+          <div class="note" id="intervalNote">每隔一段时间，给自己一个短暂的休息。</div>
 
-          <label class="labelSmall" for="alertLeadRange">距离下次休息剩余多少分钟开始警示</label>
+          <label class="labelSmall" for="alertLeadRange">提前提醒（分钟）</label>
           <div class="intervalRow">
             <input id="alertLeadRange" class="range" type="range" min="1" max="60" step="1" value="5" />
-            <input id="alertLeadNumber" class="num" type="number" min="1" max="60" step="1" value="5" />
+            <input aria-label="提前提醒分钟数" id="alertLeadNumber" class="num" type="number" min="1" max="60" step="1" value="5" />
           </div>
 
           <label class="toggle">
             <input id="toggleAutoShowNearBreak" type="checkbox" checked />
             <span class="toggleUi"></span>
-            <span class="toggleText">非常亮模式下，最后警示时间自动显现悬浮时间</span>
+            <span class="toggleText">临近休息时显示悬浮计时</span>
           </label>
         </div>
 
-        <div class="split"></div>
+        </details><details class="settingsGroup" open><summary>提醒方式</summary>
 
         <div class="formRow">
-          <div class="rowTitle">提醒方式</div>
+          
 
           <label class="toggle">
             <input id="toggleSystem" type="checkbox" />
             <span class="toggleUi"></span>
-            <span class="toggleText">系统通知（Windows Toast）</span>
+            <span class="toggleText">系统通知</span>
           </label>
 
           <label class="toggle">
@@ -151,14 +76,14 @@
           <label class="toggle">
             <input id="toggleSound" type="checkbox" />
             <span class="toggleUi"></span>
-            <span class="toggleText">声音提示（beep）</span>
+            <span class="toggleText">声音提示</span>
           </label>
         </div>
 
-        <div class="split"></div>
+        </details><details class="settingsGroup" ><summary>稍后提醒</summary>
 
         <div class="formRow">
-          <div class="rowTitle">Snooze（稍后提醒）</div>
+          
           <div class="inline">
             <label class="labelSmall" for="snoozeNumber">默认分钟数</label>
             <input id="snoozeNumber" class="num" type="number" min="0" max="240" step="1" value="10" />
@@ -167,24 +92,24 @@
           <div id="snoozeHint" class="note"></div>
         </div>
 
-        <div class="split"></div>
+        </details><details class="settingsGroup" ><summary>识别规则</summary>
 
         <div class="formRow">
-          <div class="rowTitle">识别规则（更灵活）</div>
+          
 
           <label class="labelSmall" for="keywords">窗口标题关键词（逗号分隔）</label>
           <textarea id="keywords" class="textarea" rows="2" placeholder="bilibili,哔哩哔哩,B站"></textarea>
 
-          <label class="labelSmall" for="processes">浏览器进程名（逗号分隔，可留空=不限制）</label>
+          <label class="labelSmall" for="processes">软件 / 浏览器进程名（逗号分隔）</label>
           <textarea id="processes" class="textarea" rows="2" placeholder="chrome.exe,msedge.exe,firefox.exe"></textarea>
 
-          <div class="note">小提示：Edge 是 <code>msedge.exe</code>，Chrome 是 <code>chrome.exe</code>。</div>
+          <div class="note">普通软件按进程计时；浏览器还需匹配标题关键词。进程留空时仅匹配标题。Edge 是 <code>msedge.exe</code>，Chrome 是 <code>chrome.exe</code>。</div>
         </div>
 
-        <div class="split"></div>
+        </details><details class="settingsGroup" ><summary>系统与悬浮计时</summary>
 
         <div class="formRow">
-          <div class="rowTitle">系统</div>
+          
 
           <label class="toggle">
             <input id="toggleClockAlwaysOn" type="checkbox" />
@@ -193,43 +118,22 @@
           </label>
 
           <div class="inline">
-            <label class="labelSmall" for="clockFadeAfter">多少秒后变透明</label>
+            <label class="labelSmall" for="clockFadeAfter">自动淡出（秒）</label>
             <input id="clockFadeAfter" class="num" type="number" min="3" max="600" step="1" value="20" />
           </div>
 
           <label class="toggle">
             <input id="toggleAutoStart" type="checkbox" />
             <span class="toggleUi"></span>
-            <span class="toggleText">开机自启动（Windows）</span>
+            <span class="toggleText">开机启动</span>
           </label>
 
-          <div class="actions">
+          
+        </div>
+      </details><div class="captureBar"><button id="btnCaptureTarget" class="btn">添加聚焦的软件 / 网页</button><p id="captureHint" class="note" role="status" aria-live="polite">点击后 5 秒内切换到目标窗口，将添加规则并保存当前设置。网页按标题关键词识别。</p></div><div class="saveBar"><div class="actions">
             <button id="btnSave" class="btn btn--primary">保存设置</button>
             <span id="saveHint" class="note"></span>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Chart Card: full-width study history -->
-    <section class="card chartCard">
-      <div class="cardHeader">
-        <div>
-          <div class="cardTitle">学习时长趋势</div>
-          <div class="cardSub">近期每日学习时长折线图</div>
-        </div>
-        <div class="chartRangeRow">
-          <button class="chip chartRangeBtn chartRangeBtn--active" data-days="7">7 天</button>
-          <button class="chip chartRangeBtn" data-days="14">14 天</button>
-          <button class="chip chartRangeBtn" data-days="30">30 天</button>
-        </div>
-      </div>
-      <div class="chartWrap">
-        <svg id="studyChart" class="studyChart" aria-label="每日学习时长折线图"></svg>
-      </div>
-    </section>
-
-    <!-- Modal -->
+          </div></div></aside></main>
     <div id="modalOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal">
         <div class="modalTop">
@@ -244,17 +148,9 @@
 
         <div class="modalActions">
           <button id="modalOk" class="btn btn--primary">知道了</button>
-          <button id="modalSnooze" class="btn">Snooze</button>
+          <button id="modalSnooze" class="btn">稍后提醒</button>
         </div>
       </div>
     </div>
 
-    <footer class="footer">
-      v3 · UI 美化 + 间隔可往小调修复
-    </footer>
-  </div>
-
-  <script type="module" src="/src/main.js"></script>
-</body>
-
-</html>
+    <footer class="footer">专注当下，也照顾自己。</footer></div><script type="module" src="/src/main.js"></script></body></html>

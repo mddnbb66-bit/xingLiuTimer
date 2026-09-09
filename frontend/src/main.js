@@ -68,7 +68,16 @@ const clockState = {
   y: null,
 };
 
+function updatePresetSelection() {
+  document.querySelectorAll("[data-preset]").forEach(button => {
+    const selected = button.dataset.preset === els.intervalNumber.value;
+    button.classList.toggle("chip--selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
+
 function markDirty(on = true) {
+  updatePresetSelection();
   state.dirty = on;
   els.saveHint.textContent = on ? "未保存" : "";
 }
@@ -81,7 +90,7 @@ function clampInt(v, min, max) {
 
 function splitList(text) {
   return String(text || "")
-    .split(/[,\n]/g)
+    .split(/[,，\n]/g)
     .map((s) => s.trim())
     .filter(Boolean);
 }
@@ -173,6 +182,7 @@ function applyCfgToUI(cfg) {
   els.toggleAutoStart.checked = !!cfg.autoStart;
   els.toggleClockAlwaysOn.checked = !!cfg.clockAlwaysOn;
   els.clockFadeAfter.value = String(cfg.clockFadeAfterSecs ?? 20);
+  updatePresetSelection();
   updateClockVisibility(true);
 }
 
@@ -182,6 +192,7 @@ function collectCfgFromUI() {
   const clockFadeAfterSecs = clampInt(els.clockFadeAfter.value, 3, 600);
   const clockAlertMinutes = clampInt(els.alertLeadNumber.value, 1, 60);
   return {
+    recognitionVersion: state.cfg?.recognitionVersion ?? 1,
     intervalMinutes,
     monitorEnabled: state.cfg?.monitorEnabled ?? true,
     notifySystem: !!els.toggleSystem.checked,
@@ -270,11 +281,15 @@ function updateClockVisibility(forceShow = false) {
 }
 
 function setClockPosition(x, y) {
+  x = Math.max(8, Math.min(x, window.innerWidth - els.floatingClock.offsetWidth - 8));
+  y = Math.max(8, Math.min(y, window.innerHeight - els.floatingClock.offsetHeight - 8));
   clockState.x = x;
   clockState.y = y;
+  els.floatingClock.style.right = "auto";
+  els.floatingClock.style.bottom = "auto";
   els.floatingClock.style.left = `${x}px`;
   els.floatingClock.style.top = `${y}px`;
-  els.floatingClock.style.transform = "translate(0, 0) skewX(-12deg)";
+  els.floatingClock.style.transform = "translate(0, 0)";
 }
 
 function wireClock() {
@@ -345,7 +360,7 @@ function renderStats(stats) {
   if (stats.running) {
     els.statusPill.classList.remove("pill--stopped");
     els.statusPill.classList.add("pill--running");
-    els.statusPill.textContent = stats.watching ? "监测中 · 计时中" : "监测中 · 未识别到B站";
+    els.statusPill.textContent = stats.watching ? "监测中 · 计时中" : "监测中 · 等待匹配窗口";
     els.btnStartStop.textContent = "停止监控";
   } else {
     els.statusPill.classList.remove("pill--running");
@@ -355,7 +370,7 @@ function renderStats(stats) {
   }
 
   if (stats.snoozedUntil) {
-    els.snoozeHint.textContent = `已 Snooze 到：${stats.snoozedUntil.replace("T", " ").replace("Z", "")}`;
+    els.snoozeHint.textContent = `已延后至：${stats.snoozedUntil.replace("T", " ").replace("Z", "")}`;
   } else {
     els.snoozeHint.textContent = "";
   }
@@ -409,6 +424,39 @@ async function refreshOnce() {
 }
 
 function wireUI() {
+  const captureButton = $("btnCaptureTarget");
+  const captureHint = $("captureHint");
+  captureButton.addEventListener("click", async () => {
+    captureButton.disabled = true;
+    els.btnSave.disabled = true;
+    captureButton.textContent = "正在等待切换窗口…";
+    captureHint.textContent = "请在 5 秒内切换到目标软件或浏览器标签页，并保持该窗口聚焦。";
+    try {
+      const target = await App.CaptureFocusedTarget();
+      const appendUnique = (field, value) => {
+        const values = splitList(field.value);
+        if (value && !values.some(item => item.toLowerCase() === value.toLowerCase())) values.push(value);
+        field.value = values.join(", ");
+      };
+      appendUnique(els.processes, target.process);
+      if (target.browser) appendUnique(els.keywords, target.keyword);
+      markDirty(true);
+      const cfg = collectCfgFromUI();
+      await App.SetConfig(cfg);
+      state.cfg = cfg;
+      markDirty(false);
+      captureHint.textContent = target.browser
+        ? `已保存：${target.process} · 网页关键词「${target.keyword}」。可在识别规则中缩短关键词，以匹配同类页面。`
+        : `已保存：${target.process}。聚焦此软件时开始计时。`;
+    } catch (error) {
+      captureHint.textContent = `添加未完成：${String(error?.message || error)}。如已出现新规则，可点击保存设置重试。`;
+    } finally {
+      captureButton.disabled = false;
+      els.btnSave.disabled = false;
+      captureButton.textContent = "添加聚焦的软件 / 网页";
+    }
+  });
+
   const syncAlertLead = (from) => {
     const v = clampInt(from.value, 1, 60);
     els.alertLeadRange.value = String(v);
@@ -625,11 +673,12 @@ function drawChart(points) {
   const defs = mk("defs", {});
   const gradId = "chartGrad";
   const grad = mk("linearGradient", { id: gradId, x1: "0", y1: "0", x2: "0", y2: "1" });
-  grad.appendChild(mk("stop", { offset: "0%", "stop-color": "rgba(96,165,250,0.38)" }));
-  grad.appendChild(mk("stop", { offset: "100%", "stop-color": "rgba(96,165,250,0.02)" }));
+  grad.appendChild(mk("stop", { offset: "0%", "stop-color": "rgba(107,184,129,0.20)" }));
+  grad.appendChild(mk("stop", { offset: "100%", "stop-color": "rgba(107,184,129,0.02)" }));
   defs.appendChild(grad);
   svg.appendChild(defs);
 
+  if (!points.length) return;
   const maxSecs = Math.max(...points.map((p) => p.seconds), 60);
   const n = points.length;
 
@@ -643,7 +692,7 @@ function drawChart(points) {
     const y = yOf(secs);
     svg.appendChild(mk("line", {
       x1: padL, y1: y, x2: padL + innerW, y2: y,
-      stroke: "rgba(255,255,255,0.07)", "stroke-width": "1",
+      stroke: "#e8e8ed", "stroke-width": "1",
       "stroke-dasharray": t === 0 ? "" : "4 4",
     }));
     const mins = Math.round(secs / 60);
@@ -651,7 +700,7 @@ function drawChart(points) {
     const txt = mk("text", {
       x: padL - 6, y: y + 4,
       "text-anchor": "end",
-      fill: "rgba(255,255,255,0.45)",
+      fill: "#6e6e73",
       "font-size": "11",
       "font-family": "ui-monospace,monospace",
     });
@@ -676,7 +725,7 @@ function drawChart(points) {
   svg.appendChild(mk("path", {
     d: lineD,
     fill: "none",
-    stroke: "rgba(96,165,250,0.90)",
+    stroke: "#326b46",
     "stroke-width": "2",
     "stroke-linejoin": "round",
     "stroke-linecap": "round",
@@ -694,14 +743,14 @@ function drawChart(points) {
       if (isToday) {
         svg.appendChild(mk("circle", {
           cx: x, cy: y, r: "6",
-          fill: "rgba(96,165,250,0.20)",
-          stroke: "rgba(96,165,250,0.90)",
+          fill: "rgba(107,184,129,0.20)",
+          stroke: "#326b46",
           "stroke-width": "2",
         }));
       }
       svg.appendChild(mk("circle", {
         cx: x, cy: y, r: isToday ? "4" : "3",
-        fill: isToday ? "#60a5fa" : "rgba(96,165,250,0.80)",
+        fill: isToday ? "#326b46" : "#326b46",
       }));
     }
 
@@ -710,7 +759,7 @@ function drawChart(points) {
       const txt = mk("text", {
         x: x, y: H - 6,
         "text-anchor": "middle",
-        fill: isToday ? "rgba(191,219,254,0.95)" : "rgba(255,255,255,0.40)",
+        fill: isToday ? "#255b3b" : "#6e6e73",
         "font-size": "10",
         "font-family": "ui-monospace,monospace",
         "font-weight": isToday ? "700" : "400",
@@ -726,7 +775,7 @@ function drawChart(points) {
       const txt = mk("text", {
         x: x, y: y - 9,
         "text-anchor": "middle",
-        fill: "rgba(191,219,254,0.82)",
+        fill: "#255b3b",
         "font-size": "10",
         "font-family": "ui-monospace,monospace",
         "font-weight": "600",

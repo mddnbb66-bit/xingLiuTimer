@@ -9,5 +9,7 @@ export {
 
 export {
     Config,
+    DailyPoint,
+    FocusTarget,
     Stats
 } from "./models.js";

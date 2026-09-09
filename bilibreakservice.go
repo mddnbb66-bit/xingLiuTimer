@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -113,6 +114,87 @@ type DailyPoint struct {
 	Seconds int    `json:"seconds"`
 }
 
+// FocusTarget describes the foreground window captured after the switch delay.
+type FocusTarget struct {
+	Process string `json:"process"`
+	Keyword string `json:"keyword"`
+	Browser bool   `json:"browser"`
+}
+
+func isBrowserProcess(process string) bool {
+	switch strings.ToLower(strings.TrimSpace(process)) {
+	case "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "vivaldi.exe", "iexplore.exe", "browser.exe", "sunbrowser.exe", "arc.exe", "zen.exe", "librewolf.exe", "waterfox.exe":
+		return true
+	}
+	return false
+}
+
+func containsTitleKeyword(title string, keywords []string) bool {
+	for _, keyword := range normalizeStringSlice(keywords) {
+		if strings.Contains(strings.ToLower(title), keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func focusTargetForWindow(info ActiveWindowInfo, ownPID uint32) (FocusTarget, error) {
+	if !info.OK || strings.TrimSpace(info.Process) == "" {
+		return FocusTarget{}, fmt.Errorf("无法读取当前窗口的进程，请切换到目标软件后重试")
+	}
+	if info.PID == ownPID {
+		return FocusTarget{}, fmt.Errorf("仍停留在提醒软件，请在 5 秒内切换到目标软件或网页")
+	}
+	target := FocusTarget{Process: strings.ToLower(strings.TrimSpace(info.Process)), Browser: isBrowserProcess(info.Process)}
+	if target.Browser {
+		target.Keyword = strings.TrimSpace(info.Title)
+		// Remove browser branding while retaining the page's distinguishing title.
+		for _, suffix := range []string{" - Google Chrome", " - Microsoft Edge", " — Mozilla Firefox", " - Brave", " - Opera", " - Vivaldi", " - SunBrowser", " - Arc", " — Zen Browser"} {
+			if strings.HasSuffix(strings.ToLower(target.Keyword), strings.ToLower(suffix)) {
+				target.Keyword = strings.TrimSpace(target.Keyword[:len(target.Keyword)-len(suffix)])
+				break
+			}
+		}
+		if target.Keyword == "" {
+			return FocusTarget{}, fmt.Errorf("网页标题为空，请打开目标网页后重试")
+		}
+		// Known services keep matching when their conversation/document title changes.
+		for _, keyword := range []string{"chatgpt", "bilibili", "哔哩哔哩", "claude", "gemini", "deepseek"} {
+			if strings.Contains(strings.ToLower(target.Keyword), keyword) {
+				target.Keyword = keyword
+				break
+			}
+		}
+		parts := strings.FieldsFunc(target.Keyword, func(r rune) bool { return r == ',' || r == '，' || r == '\n' || r == '\r' })
+		target.Keyword = ""
+		for _, part := range parts {
+			if len(strings.TrimSpace(part)) > len(target.Keyword) {
+				target.Keyword = strings.TrimSpace(part)
+			}
+		}
+		if target.Keyword == "" {
+			return FocusTarget{}, fmt.Errorf("网页标题不含可用关键词，请换一个网页后重试")
+		}
+	}
+	return target, nil
+}
+
+// CaptureFocusedTarget runs in Go so switching away cannot throttle the delay.
+func (s *BiliBreakService) CaptureFocusedTarget() (FocusTarget, error) {
+	ctx := s.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return FocusTarget{}, ctx.Err()
+	case <-timer.C:
+	}
+	return focusTargetForWindow(GetActiveWindowInfo(), uint32(os.Getpid()))
+}
+
 // ===== Public methods =====
 
 func (s *BiliBreakService) GetConfig() Config {
@@ -156,7 +238,7 @@ func (s *BiliBreakService) GetDailyHistory(days int) []DailyPoint {
 	s.mu.RUnlock()
 	result := make([]DailyPoint, days)
 	for i := 0; i < days; i++ {
-		day := now.AddDate(0, 0, -(days-1-i)).Format("2006-01-02")
+		day := now.AddDate(0, 0, -(days - 1 - i)).Format("2006-01-02")
 		secs := 0
 		if dailySeconds != nil {
 			secs = dailySeconds[day]
@@ -351,10 +433,8 @@ func (s *BiliBreakService) persistStats(force bool) {
 	}
 }
 func (s *BiliBreakService) matchesDebug(cfg Config, titleLower, processLower string) (bool, string) {
-	browsers := []string{
-		"chrome.exe", "msedge.exe", "firefox.exe", "brave.exe",
-		"opera.exe", "vivaldi.exe", "iexplore.exe", "browser.exe",
-	}
+	titleLower = strings.ToLower(titleLower)
+	processLower = strings.ToLower(processLower)
 
 	// 1. 检查白名单 (强力容错分割)
 	isTargetProcess := false
@@ -390,17 +470,12 @@ func (s *BiliBreakService) matchesDebug(cfg Config, titleLower, processLower str
 			return false, "不在白名单"
 		}
 	} else {
-		return false, "白名单为空"
+		// Empty process list allows any process, but still requires a title keyword.
+		return containsTitleKeyword(titleLower, cfg.Keywords), "按标题关键词匹配"
 	}
 
 	// 2. 检查是否为浏览器
-	isBrowser := false
-	for _, b := range browsers {
-		if strings.EqualFold(processLower, b) {
-			isBrowser = true
-			break
-		}
-	}
+	isBrowser := isBrowserProcess(processLower)
 
 	// 3. 决策
 	if isBrowser {

@@ -15,11 +15,33 @@ import * as application$0 from "../github.com/wailsapp/wails/v3/pkg/application/
 import * as $models from "./models.js";
 
 /**
+ * CaptureFocusedTarget runs in Go so switching away cannot throttle the delay.
+ * @returns {$CancellablePromise<$models.FocusTarget>}
+ */
+export function CaptureFocusedTarget() {
+    return $Call.ByID(2444811314).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
  * @returns {$CancellablePromise<$models.Config>}
  */
 export function GetConfig() {
     return $Call.ByID(17153554).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType1($result);
+    }));
+}
+
+/**
+ * GetDailyHistory returns the study seconds for the last `days` calendar days (7–30),
+ * ordered from oldest to newest. Days with no tracked activity have Seconds = 0.
+ * @param {number} days
+ * @returns {$CancellablePromise<$models.DailyPoint[]>}
+ */
+export function GetDailyHistory(days) {
+    return $Call.ByID(2928107303, days).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
     }));
 }
 
@@ -28,7 +50,7 @@ export function GetConfig() {
  */
 export function GetStats() {
     return $Call.ByID(4085168031).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType4($result);
     }));
 }
 
@@ -85,5 +107,8 @@ export function Stop() {
 }
 
 // Private type creation functions
-const $$createType0 = $models.Config.createFrom;
-const $$createType1 = $models.Stats.createFrom;
+const $$createType0 = $models.FocusTarget.createFrom;
+const $$createType1 = $models.Config.createFrom;
+const $$createType2 = $models.DailyPoint.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = $models.Stats.createFrom;
