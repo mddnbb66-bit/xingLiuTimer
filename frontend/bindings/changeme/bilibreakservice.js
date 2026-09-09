@@ -64,6 +64,13 @@ export function ManualRemind() {
 /**
  * @returns {$CancellablePromise<void>}
  */
+export function ResetCumulative() {
+    return $Call.ByID(2143171220);
+}
+
+/**
+ * @returns {$CancellablePromise<void>}
+ */
 export function ResetToday() {
     return $Call.ByID(1192952464);
 }
@@ -82,6 +89,17 @@ export function SetConfig(cfg) {
  */
 export function SetMainWindow(win) {
     return $Call.ByID(739013693, win);
+}
+
+/**
+ * Save only the interval; unrelated unsaved frontend settings remain untouched.
+ * @param {number} minutes
+ * @returns {$CancellablePromise<$models.Stats>}
+ */
+export function SetReminderInterval(minutes) {
+    return $Call.ByID(327883147, minutes).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
 }
 
 /**
@@ -104,6 +122,13 @@ export function Start() {
  */
 export function Stop() {
     return $Call.ByID(32783152);
+}
+
+/**
+ * @returns {$CancellablePromise<void>}
+ */
+export function UndoReset() {
+    return $Call.ByID(2607934457);
 }
 
 // Private type creation functions

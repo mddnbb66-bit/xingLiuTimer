@@ -14,6 +14,8 @@ import (
 
 // Stats is pushed to the frontend via events and is also queryable via GetStats().
 type Stats struct {
+	CanUndoReset             bool   `json:"canUndoReset"`
+	UndoResetKind            string `json:"undoResetKind"`
 	Running                  bool   `json:"running"`
 	Watching                 bool   `json:"watching"`
 	TotalWatchedSeconds      int    `json:"totalWatchedSeconds"`
@@ -75,6 +77,8 @@ func (s *BiliBreakService) ServiceStartup(ctx context.Context, _ application.Ser
 		s.mu.Lock()
 		s.persistedStats = persisted
 		s.stats.CumulativeWatchedSeconds = persisted.CumulativeWatchedSeconds
+		s.stats.TotalWatchedSeconds = persisted.DailySeconds[s.day]
+		s.updateResetStatusLocked()
 		s.mu.Unlock()
 	}
 	go s.loop()
@@ -206,15 +210,43 @@ func (s *BiliBreakService) GetConfig() Config {
 func (s *BiliBreakService) SetConfig(cfg Config) error {
 	cfg.Normalize()
 	s.mu.Lock()
-	s.cfg = cfg
-	s.mu.Unlock()
 	if err := SaveConfig(cfg); err != nil {
+		s.mu.Unlock()
 		return err
 	}
+	s.applyConfigLocked(cfg)
+	s.mu.Unlock()
 	_ = SetAutoStart(cfg.AutoStart)
 	s.emitConfig()
 	s.emitStats()
 	return nil
+}
+
+func (s *BiliBreakService) applyConfigLocked(cfg Config) {
+	if cfg.IntervalMinutes != s.cfg.IntervalMinutes {
+		s.stats.SinceLastBreakSeconds = 0
+		s.snoozedUntil = time.Time{}
+		s.stats.SnoozedUntil = ""
+	}
+	s.cfg = cfg
+	s.stats.NextBreakInSeconds = max(0, cfg.IntervalMinutes*60-s.stats.SinceLastBreakSeconds)
+}
+
+// Save only the interval; unrelated unsaved frontend settings remain untouched.
+func (s *BiliBreakService) SetReminderInterval(minutes int) (Stats, error) {
+	s.mu.Lock()
+	cfg := s.cfg
+	cfg.IntervalMinutes = minutes
+	cfg.Normalize()
+	if err := SaveConfig(cfg); err != nil {
+		s.mu.Unlock()
+		return Stats{}, err
+	}
+	s.applyConfigLocked(cfg)
+	stats := s.stats
+	s.mu.Unlock()
+	s.emitStats()
+	return stats, nil
 }
 
 func (s *BiliBreakService) GetStats() Stats {
@@ -234,8 +266,8 @@ func (s *BiliBreakService) GetDailyHistory(days int) []DailyPoint {
 	}
 	now := time.Now()
 	s.mu.RLock()
+	defer s.mu.RUnlock()
 	dailySeconds := s.persistedStats.DailySeconds
-	s.mu.RUnlock()
 	result := make([]DailyPoint, days)
 	for i := 0; i < days; i++ {
 		day := now.AddDate(0, 0, -(days - 1 - i)).Format("2006-01-02")
@@ -276,12 +308,97 @@ func (s *BiliBreakService) Stop() error {
 	return nil
 }
 
-func (s *BiliBreakService) ResetToday() {
+func (s *BiliBreakService) ResetToday() error {
+	return s.resetTime("today", time.Now())
+}
+
+func (s *BiliBreakService) ResetCumulative() error {
+	return s.resetTime("cumulative", time.Now())
+}
+
+func clonePersistedStats(data PersistedStats) PersistedStats {
+	copy := data
+	copy.DailySeconds = make(map[string]int, len(data.DailySeconds))
+	for day, seconds := range data.DailySeconds {
+		copy.DailySeconds[day] = seconds
+	}
+	copy.ResetHistory = append([]ResetRecord(nil), data.ResetHistory...)
+	return copy
+}
+
+func (s *BiliBreakService) updateResetStatusLocked() {
+	s.stats.CanUndoReset = len(s.persistedStats.ResetHistory) > 0
+	s.stats.UndoResetKind = ""
+	if s.stats.CanUndoReset {
+		s.stats.UndoResetKind = s.persistedStats.ResetHistory[len(s.persistedStats.ResetHistory)-1].Kind
+	}
+}
+
+func (s *BiliBreakService) resetTime(kind string, now time.Time) error {
 	s.mu.Lock()
-	s.stats.TotalWatchedSeconds = 0
-	s.stats.SinceLastBreakSeconds = 0
+	data := clonePersistedStats(s.persistedStats)
+	data.CumulativeWatchedSeconds = s.stats.CumulativeWatchedSeconds
+	day := now.Format("2006-01-02")
+	record := ResetRecord{Kind: kind, Day: day}
+	if kind == "today" {
+		record.Seconds = data.DailySeconds[day]
+		data.DailySeconds[day] = 0
+	} else {
+		record.Seconds = data.CumulativeWatchedSeconds
+		data.CumulativeWatchedSeconds = 0
+	}
+	if record.Seconds == 0 {
+		s.mu.Unlock()
+		return fmt.Errorf("这项累计时间已为零，无需清空")
+	}
+	data.ResetHistory = append(data.ResetHistory, record)
+	if err := SavePersistedStats(data); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	s.persistedStats = data
+	s.stats.CumulativeWatchedSeconds = data.CumulativeWatchedSeconds
+	s.stats.TotalWatchedSeconds = data.DailySeconds[day]
+	s.stats.DailyAvgSeconds = computeDailyAvg(data.DailySeconds)
+	s.stats.WeeklyAvgSeconds = computeWeeklyAvg(data.DailySeconds, now)
+	s.updateResetStatusLocked()
 	s.mu.Unlock()
 	s.emitStats()
+	return nil
+}
+
+func (s *BiliBreakService) UndoReset() error {
+	return s.undoResetAt(time.Now())
+}
+
+func (s *BiliBreakService) undoResetAt(now time.Time) error {
+	s.mu.Lock()
+	data := clonePersistedStats(s.persistedStats)
+	data.CumulativeWatchedSeconds = s.stats.CumulativeWatchedSeconds
+	if len(data.ResetHistory) == 0 {
+		s.mu.Unlock()
+		return fmt.Errorf("没有可撤销的清空操作")
+	}
+	record := data.ResetHistory[len(data.ResetHistory)-1]
+	data.ResetHistory = data.ResetHistory[:len(data.ResetHistory)-1]
+	if record.Kind == "today" {
+		data.DailySeconds[record.Day] += record.Seconds
+	} else {
+		data.CumulativeWatchedSeconds += record.Seconds
+	}
+	if err := SavePersistedStats(data); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	s.persistedStats = data
+	s.stats.CumulativeWatchedSeconds = data.CumulativeWatchedSeconds
+	s.stats.TotalWatchedSeconds = data.DailySeconds[now.Format("2006-01-02")]
+	s.stats.DailyAvgSeconds = computeDailyAvg(data.DailySeconds)
+	s.stats.WeeklyAvgSeconds = computeWeeklyAvg(data.DailySeconds, now)
+	s.updateResetStatusLocked()
+	s.mu.Unlock()
+	s.emitStats()
+	return nil
 }
 
 func (s *BiliBreakService) Snooze(minutes int) {
@@ -329,11 +446,15 @@ func (s *BiliBreakService) loop() {
 
 func (s *BiliBreakService) tick() {
 	now := time.Now()
-	day := now.Format("2006-01-02")
 	aw := GetActiveWindowInfo()
+	s.tickWindow(now, aw)
+}
+
+func (s *BiliBreakService) tickWindow(now time.Time, aw ActiveWindowInfo) {
+	day := now.Format("2006-01-02")
 
 	// 获取配置
-	s.mu.RLock()
+	s.mu.Lock()
 	cfg := s.cfg
 	snoozedUntil := s.snoozedUntil
 	currentDay := s.day
@@ -344,14 +465,10 @@ func (s *BiliBreakService) tick() {
 	// 如果你想让标题栏恢复成软件名，可以加这一句（或者干脆什么都不做，它就是静态的）
 	// if s.mainWindow != nil { s.mainWindow.SetTitle("Bili Break Reminder") }
 
-	s.mu.RUnlock()
-
 	if day != currentDay {
-		s.mu.Lock()
 		s.day = day
-		s.stats.TotalWatchedSeconds = 0
+		s.stats.TotalWatchedSeconds = s.persistedStats.DailySeconds[day]
 		s.stats.SinceLastBreakSeconds = 0
-		s.mu.Unlock()
 	}
 
 	running := cfg.MonitorEnabled
@@ -365,7 +482,6 @@ func (s *BiliBreakService) tick() {
 		intervalSec = 60
 	}
 
-	s.mu.Lock()
 	s.stats.Running = running
 	s.stats.Watching = watching
 	s.stats.ActiveTitle = aw.Title
@@ -410,27 +526,27 @@ func (s *BiliBreakService) tick() {
 
 func (s *BiliBreakService) persistStats(force bool) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	current := s.stats.CumulativeWatchedSeconds
 	stored := s.persistedStats.CumulativeWatchedSeconds
 	now := time.Now()
 	if !force {
 		if current == stored {
-			s.mu.Unlock()
 			return
 		}
 		if !s.lastStatsPersistAt.IsZero() && now.Sub(s.lastStatsPersistAt) < 5*time.Second {
-			s.mu.Unlock()
 			return
 		}
 	}
-	s.persistedStats.CumulativeWatchedSeconds = current
-	s.lastStatsPersistAt = now
 	data := s.persistedStats
-	s.mu.Unlock()
+	data.CumulativeWatchedSeconds = current
 
 	if err := SavePersistedStats(data); err != nil {
 		fmt.Println("save persisted stats failed:", err)
+		return
 	}
+	s.persistedStats.CumulativeWatchedSeconds = current
+	s.lastStatsPersistAt = now
 }
 func (s *BiliBreakService) matchesDebug(cfg Config, titleLower, processLower string) (bool, string) {
 	titleLower = strings.ToLower(titleLower)

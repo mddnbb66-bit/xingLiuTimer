@@ -4,6 +4,8 @@ import { Events } from "@wailsio/runtime";
 // ✅ 核心修复：路径必须匹配你截图里的 "changeme"
 // ---------------------------------------------------------
 import * as App from "../bindings/changeme/bilibreakservice.js";
+import { createIntervalController } from "./interval-controller.js";
+import { wireResetControls, updateResetControls } from "./reset-controls.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -57,6 +59,16 @@ let state = {
   dirty: false,
   cumulativeDisplayMode: "hms",
 };
+
+const intervalController = createIntervalController({
+  save: (minutes) => App.SetReminderInterval(minutes),
+  applied: (minutes, stats) => {
+    state.cfg = { ...(state.cfg || {}), intervalMinutes: minutes };
+    state.stats = stats;
+    renderStats(stats);
+  },
+  status: (message) => { els.intervalNote.textContent = message; },
+});
 
 const clockState = {
   hideTimer: null,
@@ -339,6 +351,7 @@ function wireClock() {
 
 function renderStats(stats) {
   if (!stats) return;
+  updateResetControls(stats);
   updateFloatingClockFromStats();
   els.statTotal.textContent = fmtHMS(stats.totalWatchedSeconds);
   els.statCumulative.textContent = formatCumulativeSeconds(stats.cumulativeWatchedSeconds);
@@ -424,6 +437,11 @@ async function refreshOnce() {
 }
 
 function wireUI() {
+  wireResetControls({ App, refresh: async () => {
+    state.stats = await App.GetStats();
+    renderStats(state.stats);
+    await refreshChart();
+  } });
   const captureButton = $("btnCaptureTarget");
   const captureHint = $("captureHint");
   captureButton.addEventListener("click", async () => {
@@ -432,6 +450,7 @@ function wireUI() {
     captureButton.textContent = "正在等待切换窗口…";
     captureHint.textContent = "请在 5 秒内切换到目标软件或浏览器标签页，并保持该窗口聚焦。";
     try {
+      await intervalController.flush();
       const target = await App.CaptureFocusedTarget();
       const appendUnique = (field, value) => {
         const values = splitList(field.value);
@@ -472,11 +491,15 @@ function wireUI() {
   };
 
   const syncInterval = (from) => {
-    const v = clampInt(from.value, 1, 240);
+    const v = Number(from.value);
+    if (from.value === "" || !Number.isInteger(v) || v < 1 || v > 240) {
+      els.intervalNote.textContent = "请输入 1～240 之间的整数分钟。";
+      return;
+    }
     els.intervalRange.value = String(v);
     els.intervalNumber.value = String(v);
-    els.intervalNote.textContent = `当前：${v} 分钟（最小 1 分钟）`;
-    markDirty(true);
+    updatePresetSelection();
+    intervalController.schedule(v);
   };
 
   els.intervalRange.addEventListener("input", () => syncInterval(els.intervalRange));
@@ -489,8 +512,8 @@ function wireUI() {
       const v = clampInt(btn.getAttribute("data-preset"), 1, 240);
       els.intervalRange.value = String(v);
       els.intervalNumber.value = String(v);
-      els.intervalNote.textContent = `当前：${v} 分钟（最小 1 分钟）`;
-      markDirty(true);
+      updatePresetSelection();
+      intervalController.schedule(v, true);
     });
   });
 
@@ -525,6 +548,11 @@ function wireUI() {
   els.btnSave.addEventListener("click", async () => {
     els.saveHint.textContent = "保存中...";
     try {
+      await intervalController.flush();
+      if (!els.intervalNumber.checkValidity() || els.intervalNumber.value === "") {
+        els.intervalNumber.reportValidity();
+        throw new Error("提醒间隔必须是 1～240 的整数");
+      }
       const cfg = collectCfgFromUI();
       await App.SetConfig(cfg); // ✅ Direct call
       state.cfg = cfg;
@@ -552,14 +580,6 @@ function wireUI() {
   els.btnManual.addEventListener("click", async () => {
     try {
       await App.ManualRemind(); // ✅ Direct call
-    } catch (e) {
-      console.error(e);
-    }
-  });
-
-  els.btnReset.addEventListener("click", async () => {
-    try {
-      await App.ResetToday(); // ✅ Direct call
     } catch (e) {
       console.error(e);
     }
@@ -616,7 +636,7 @@ function wireEvents() {
 
   Events.On("bili:config", (event) => {
     state.cfg = event.data;
-    applyCfgToUI(event.data);
+    if (!state.dirty && !intervalController.busy) applyCfgToUI(event.data);
   });
 
   Events.On("bili:remind", (event) => {

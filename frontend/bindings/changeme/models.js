@@ -244,6 +244,20 @@ export class Stats {
      * @param {Partial<Stats>} [$$source = {}] - The source object to create the Stats.
      */
     constructor($$source = {}) {
+        if (!("canUndoReset" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["canUndoReset"] = false;
+        }
+        if (!("undoResetKind" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["undoResetKind"] = "";
+        }
         if (!("running" in $$source)) {
             /**
              * @member

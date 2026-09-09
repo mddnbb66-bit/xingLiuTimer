@@ -50,6 +50,14 @@ type Config struct {
 type PersistedStats struct {
 	CumulativeWatchedSeconds int            `json:"cumulativeWatchedSeconds"`
 	DailySeconds             map[string]int `json:"dailySeconds,omitempty"` // "2006-01-02" -> seconds
+	ResetHistory             []ResetRecord  `json:"resetHistory,omitempty"`
+}
+
+// Each reset stores only the removed amount, so undo retains newly counted time.
+type ResetRecord struct {
+	Kind    string `json:"kind"`
+	Day     string `json:"day"`
+	Seconds int    `json:"seconds"`
 }
 
 func defaultPersistedStats() PersistedStats {

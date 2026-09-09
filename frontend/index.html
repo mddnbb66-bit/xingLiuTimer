@@ -30,7 +30,7 @@
 
           <div class="intervalRow">
             <input id="intervalRange" class="range" type="range" min="1" max="240" step="1" value="30" />
-            <input id="intervalNumber" class="num" type="number" min="1" max="240" step="1" value="30" />
+            <input id="intervalNumber" class="num" type="number" min="1" max="240" step="1" value="30" required />
           </div>
 
           <div class="presetRow">
@@ -41,7 +41,7 @@
             <button class="chip" data-preset="60">60</button>
           </div>
 
-          <div class="note" id="intervalNote">每隔一段时间，给自己一个短暂的休息。</div>
+          <div class="note" id="intervalNote" role="status">修改后自动保存，并重新开始一轮倒计时。</div>
 
           <label class="labelSmall" for="alertLeadRange">提前提醒（分钟）</label>
           <div class="intervalRow">
