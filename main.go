@@ -20,8 +20,8 @@ func main() {
 
 	// 3. 创建应用
 	app := application.New(application.Options{
-		Name:        "Bili Break Reminder",
-		Description: "A simple reminder to take a break from Bilibili",
+		Name:        "心流计时器",
+		Description: "自动记录专注，适时提醒休息",
 		Services: []application.Service{
 			application.NewService(notifier), // 注册通知服务
 			application.NewService(biliSvc),  // 注册我们的服务
@@ -36,7 +36,7 @@ func main() {
 
 	// 4. 创建主窗口 (并把窗口对象存下来)
 	mainWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "Bili Break Reminder",
+		Title:  "心流计时器",
 		Width:  1120,
 		Height: 800,
 		// 使用深色背景避免加载时白屏闪烁

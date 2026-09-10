@@ -6,9 +6,9 @@
 		"0000": {
 			"ProductVersion": "0.1.0",
 			"CompanyName": "My Company",
-			"FileDescription": "A bili-break-reminder application",
+			"FileDescription": "心流计时器",
 			"LegalCopyright": "© 2026, My Company",
-			"ProductName": "My Product",
+			"ProductName": "心流计时器",
 			"Comments": "This is a comment"
 		}
 	}

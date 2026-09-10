@@ -14,9 +14,9 @@
     ProcessorArchitecture="x64" />
   
   <Properties>
-    <DisplayName>My Product</DisplayName>
+    <DisplayName>心流计时器</DisplayName>
     <PublisherDisplayName>My Company</PublisherDisplayName>
-    <Description>A bili-break-reminder application</Description>
+    <Description>心流计时器</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   
@@ -31,8 +31,8 @@
   <Applications>
     <Application Id="com.example.bilibreakreminder" Executable="bili-break-reminder.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="My Product"
-        Description="A bili-break-reminder application"
+        DisplayName="心流计时器"
+        Description="心流计时器"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

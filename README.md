@@ -1,9 +1,10 @@
 <div align="center">
 
-  <h1>🛡️ Bili-Break-Reminder</h1>
+  <img src="build/appicon.png" width="128" alt="心流计时器图标">
+  <h1>心流计时器</h1>
   
   <p>
-    <strong>一款基于 Go + Wails 构建的现代化桌面端防沉迷助手</strong>
+    <strong>自动记录软件与网页的专注时间，适时提醒休息</strong>
   </p>
 
   <p>
@@ -27,7 +28,7 @@
 
 ## 📖 项目简介
 
-**Bili-Break-Reminder** 是一款跨平台的桌面端健康管理应用，专为需要长时间面对屏幕的学生和开发者设计。
+**心流计时器** 是一款跨平台的桌面端健康管理应用，专为需要长时间面对屏幕的学生和开发者设计。
 
 它采用 **Go (Golang)** 作为高性能后端，结合 **Vue 3** 构建现代化 UI，能够智能监控应用使用时长，并在适当时机提醒用户休息，有效预防视疲劳和久坐带来的健康问题（如腱鞘炎、腰肌劳损等）。
 
@@ -53,19 +54,12 @@
 | **前端框架** | **Vue 3** | 构建响应式用户界面 |
 | **构建工具** | **Vite** | 极速冷启动与模块热更新 |
 
-## 📸 实机演示
-
-### 专注计时与提醒设置
+## 📸 应用截图
 
 <div align="center">
-  <img src="img/demo-overview.jpg" alt="Bili Break Reminder 专注计时与提醒设置实机演示" width="100%" />
+  <img src="img/9105bf43-0fdc-40cb-9356-f18d17c39279.png" alt="应用截图" width="800" />
 </div>
 
-### 专注趋势与识别规则
-
-<div align="center">
-  <img src="img/demo-settings.jpg" alt="Bili Break Reminder 专注趋势与识别规则实机演示" width="100%" />
-</div>
 
 ## 🚀 快速开始
 

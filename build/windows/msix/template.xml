@@ -10,15 +10,15 @@
     <Installer
         Path="bili-break-reminder.exe"
         Arguments=""
-        InstallLocation="C:\Program Files\My Company\My Product">
+        InstallLocation="C:\Program Files\My Company\心流计时器">
     </Installer>
     <PackageInformation
-        PackageName="My Product"
-        PackageDisplayName="My Product"
+        PackageName="心流计时器"
+        PackageDisplayName="心流计时器"
         PublisherName="CN=My Company"
         PublisherDisplayName="My Company"
         Version="0.1.0.0"
-        PackageDescription="A bili-break-reminder application">
+        PackageDescription="心流计时器">
         <Capabilities>
             <Capability Name="runFullTrust" />
             
@@ -26,8 +26,8 @@
         <Applications>
             <Application
                 Id="com.example.bilibreakreminder"
-                Description="A bili-break-reminder application"
-                DisplayName="My Product"
+                Description="心流计时器"
+                DisplayName="心流计时器"
                 ExecutableName="bili-break-reminder.exe"
                 EntryPoint="Windows.FullTrustApplication">
                 
@@ -41,9 +41,9 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>My Product</DisplayName>
+            <DisplayName>心流计时器</DisplayName>
             <PublisherDisplayName>My Company</PublisherDisplayName>
-            <Description>A bili-break-reminder application</Description>
+            <Description>心流计时器</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>

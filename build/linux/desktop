@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=A bili-break-reminder application
+Name=心流计时器
+Comment=自动记录专注，适时提醒休息
 # The Exec line includes %u to pass the URL to the application
 Exec=/usr/local/bin/bili-break-reminder.exe %u
 Terminal=false
