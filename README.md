@@ -17,8 +17,8 @@
     <a href="https://vuejs.org/">
       <img src="https://img.shields.io/badge/Frontend-Vue.js-green?style=for-the-badge&logo=vue.js" alt="Vue">
     </a>
-    <a href="https://github.com/mddnbb66-bit/bili-break-reminder/releases">
-      <img src="https://img.shields.io/github/v/release/mddnbb66-bit/bili-break-reminder?style=for-the-badge&color=orange" alt="Release">
+    <a href="https://github.com/mddnbb66-bit/xingLiuTimer/releases">
+      <img src="https://img.shields.io/github/v/release/mddnbb66-bit/xingLiuTimer?style=for-the-badge&color=orange" alt="Release">
     </a>
   </p>
 
@@ -54,11 +54,19 @@
 | **前端框架** | **Vue 3** | 构建响应式用户界面 |
 | **构建工具** | **Vite** | 极速冷启动与模块热更新 |
 
-## 📸 应用截图
+## 📸 实机演示
 
-<div align="center">
-  <img src="img/9105bf43-0fdc-40cb-9356-f18d17c39279.png" alt="应用截图" width="800" />
-</div>
+### 专注计时与提醒设置
+
+主界面展示休息倒计时、提醒间隔自动保存和窗口置顶功能。
+
+![心流计时器实机演示：专注计时与提醒设置](img/flow-timer-focus.png)
+
+### 专注轨迹与软件识别
+
+查看专注历史，添加聚焦的软件或网页，并通过悬浮倒计时掌握休息时间；累计时间支持清空与撤销。
+
+![心流计时器实机演示：专注轨迹与软件识别](img/flow-timer-history.png)
 
 
 ## 🚀 快速开始
@@ -73,11 +81,12 @@
 
 ```bash
 # 1. 克隆项目仓库
-git clone [https://github.com/mddnbb66-bit/bili-break-reminder.git](https://github.com/mddnbb66-bit/bili-break-reminder.git)
+git clone https://github.com/mddnbb66-bit/xingLiuTimer.git
 
 # 2. 进入项目目录
-cd bili-break-reminder
+cd xingLiuTimer
 
 # 3. 安装依赖并编译 (生成 exe 文件)
 wails3 build
+```
 
